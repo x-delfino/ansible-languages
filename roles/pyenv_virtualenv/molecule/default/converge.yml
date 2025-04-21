@@ -1,0 +1,11 @@
+---
+- name: Test pyenv-virtualenv install
+  hosts: all
+  roles:
+    - role: x_delfino.languages.pyenv_virtualenv
+      environment:
+        GITHUB_TOKEN: >-
+          {{
+            lookup('env', 'GITHUB_TOKEN')
+            if lookup('env', 'GITHUB_TOKEN') | length > 0
+          }}

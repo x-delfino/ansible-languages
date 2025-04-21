@@ -1,0 +1,112 @@
+---
+- name: Initialize bun role
+  block:
+    - name: Check if bun is installed
+      ansible.builtin.command: "{{ bun_install_path }}//bin/bun --version"
+      register: __bun_check
+      failed_when: false
+      changed_when: false
+
+    - name: Get bun latest release
+      register: __bun_latest
+      when: >-
+        (bun_version is undefined and __bun_check.rc != 0)
+        or bun_version is defined and bun_version == 'latest'
+      x_delfino.common.github_latest:
+        repo: "{{ bun_repo }}"
+
+- name: Install bun
+  vars:
+    bun_install_version: >-
+      {{
+        __bun_latest.latest_version if (
+          (bun_version is undefined and __bun_check.rc != 0)
+          or bun_version == 'latest'
+        ) else ('bun-v' + bun_version) if bun_version is defined
+      }}
+    bun_platform: "{{ ansible_system | lower }}"
+    bun_architecture: >-
+      {{
+        {
+          'x86_64': 'x64',
+          'aarch64': 'aarch64',
+        }.get((ansible_architecture | lower), '')
+      }}
+  block:
+    - name: Ensure compatible bun target
+      ansible.builtin.assert:
+        that:
+          - bun_architecture != ''
+          - bun_platform in ('windows', 'linux', 'darwin')
+        success_msg: >-
+          Compatible target found:
+          {{ bun_platform }}-{{ bun_architecture }}
+        fail_msg: >-
+          Incompatible target found:
+          {{ bun_platform }} {{ ansible_architecture | lower }}
+
+    - name: Check libc type
+      ansible.builtin.command: ldd --version
+      when: ansible_system == 'Linux'
+      register: __bun_ldd
+      ignore_errors: true
+      changed_when: false
+
+    - name: Install bun
+      when: >-
+        bun_install_version is defined
+        and ('bun-' + __bun_check.stdout) != bun_install_version
+      vars:
+        bun_target: >-
+          {{
+            "bun-" + bun_platform + "-" + bun_architecture
+            + ("-musl" if "musl" in __bun_ldd.stdout else "" )
+            + ("-profile" if bun_debug else "")
+          }}
+      block:
+        - name: Create temp directory
+          ansible.builtin.tempfile:
+            state: directory
+            suffix: bun
+          register: __bun_tmp_dir
+
+        - name: Ensure bun install directory
+          ansible.builtin.file:
+            path: "{{ bun_install_path }}/bin"
+            state: directory
+            mode: '755'
+
+        - name: Download and unzip bun
+          ansible.builtin.unarchive:
+            remote_src: true
+            src: >-
+              {{
+                'https://github.com/' + bun_repo + '/releases/download/'
+                + bun_install_version + '/'
+                + bun_target + '.zip'
+              }}
+            dest: "{{ __bun_tmp_dir.path }}"
+            mode: '755'
+
+        - name: Ensure bun binary in correct path
+          ansible.builtin.copy:
+            src: >-
+              {{
+                __bun_tmp_dir.path + "/"
+                + bun_target + "/bun"
+                + (".exe" if bun_platform == 'windows' else "")
+              }}
+            dest: "{{ bun_install_path }}/bin/bun"
+            remote_src: true
+            mode: '755'
+      always:
+        - name: Remove temp directory
+          ansible.builtin.file:
+            path: "{{ __bun_tmp_dir.path }}"
+            state: absent
+          when: __bun_tmp_dir is defined
+
+- name: Ensure bun in path
+  when: bun_ensure_path
+  x_delfino.common.env_path:
+    path: "{{ bun_install_path }}//bin"

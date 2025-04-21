@@ -1,0 +1,141 @@
+---
+- name: Initialize rustup role
+  block:
+    - name: Check if rustup is installed
+      ansible.builtin.command: "{{ rustup_cargo_home }}/bin/rustup --version"
+      register: __rustup_check
+      failed_when: false
+      changed_when: false
+
+    - name: Get rustup latest version
+      register: __rustup_latest
+      when: >-
+        (rustup_version is undefined and __rustup_check.rc != 0)
+        or rustup_version is defined and rustup_version == 'latest'
+      ansible.builtin.uri:
+        url: "{{ rustup_metadata_url }}"
+        return_content: true
+
+- name: Install rustup
+  vars:
+    rustup_install_version: >-
+      {{
+        (
+
+          __rustup_latest.content | regex_search(
+            "^version = '([0-9.]+)'$",
+            '\1',
+            multiline=True
+          ) | first
+        ) if (
+          (rustup_version is undefined and __rustup_check.rc != 0)
+          or rustup_version == 'latest'
+        ) else rustup_version if rustup_version is defined
+      }}
+    rustup_platform: >-
+      {{
+        {
+          'linux': 'unknown-linux',
+          'darwin': 'apple-darwin',
+          'windows': 'pc-windows'
+        }.get((ansible_system | lower), '')
+      }}
+    rustup_architecture: >-
+      {{
+        {
+          'x86_64': 'x86_64',
+          'aarch64': 'aarch64',
+          'armv6l': 'armv7',
+          'i686': 'i686'
+        }.get((ansible_architecture | lower), '')
+      }}
+  block:
+    - name: Ensure compatible rustup target
+      ansible.builtin.assert:
+        that:
+          - rustup_architecture != ''
+          - rustup_platform != ''
+        success_msg: >-
+          Compatible target found:
+          {{ rustup_platform }}/{{ rustup_architecture }}
+        fail_msg: >-
+          Incompatible target found:
+          {{ rustup_platform }} {{ ansible_architecture | lower }}
+
+    - name: Check libc type
+      ansible.builtin.command: ldd --version
+      when: ansible_system == 'Linux'
+      register: __rustup_ldd
+      ignore_errors: true
+      changed_when: false
+
+    - name: Install rustup
+      when:
+        - rustup_install_version is defined
+        - >-
+            __rustup_check.stdout is not match(
+                'rustup ' + rustup_install_version + ' .*'
+            )
+      vars:
+        rustup_target: >-
+          {{
+            rustup_architecture + "-" + rustup_platform
+            + (
+              (
+                "-musl" if "musl" in (__rustup_ldd.stdout | lower)
+                else "-gnu" if "glibc" in (__rustup_ldd.stdout | lower)
+                else ""
+              ) if rustup_platform == 'unknown-linux'
+              else ""
+            )
+          }}
+      block:
+        - name: Create temp directory
+          ansible.builtin.tempfile:
+            state: directory
+            suffix: rustup
+          register: __rustup_tmp_dir
+
+        - name: Download rustup-init
+          ansible.builtin.uri:
+            url: >-
+              {{
+                rustup_base_url + '/'
+                + rustup_install_version + '/'
+                + rustup_target + '/'
+                + "rustup-init"
+              }}
+            dest: "{{ __rustup_tmp_dir.path }}/rustup-init"
+            mode: "0755"
+
+        - name: "Install rustup {{ rustup_install_version }}"
+          ansible.builtin.command:
+            argv:
+              - "{{ __rustup_tmp_dir.path }}/rustup-init"
+              - -y
+              - --default-toolchain
+              - 'none'
+              - --no-modify-path
+              - --no-update-default-toolchain
+          environment:
+            CARGO_HOME: >-
+              {{
+                rustup_cargo_home
+                | regex_replace('^~', ansible_user_dir)
+                | regex_replace('^\$HOME', ansible_user_dir)
+              }}
+            RUSTUP_HOME: >-
+              {{
+                rustup_home
+                | regex_replace('^~', ansible_user_dir)
+                | regex_replace('^\$HOME', ansible_user_dir)
+              }}
+          register: install
+          changed_when: install.rc == 0
+
+      always:
+        - name: Remove temp directory
+          ansible.builtin.file:
+            path: "{{ __rustup_tmp_dir.path }}"
+            state: absent
+          when: __rustup_tmp_dir is defined

@@ -1,0 +1,36 @@
+---
+argument_specs:
+  main:
+    short_description: Main entrypoint for pyenv role
+    options:
+      pyenv_repo:
+        type: "str"
+        required: false
+        default: pyenv/pyenv
+        description: The GitHub repository to install pyenv from.
+
+      pyenv_version:
+        type: "str"
+        required: false
+        description: >
+          The pyenv version to install (e.g. 2.5.5).
+          'latest' will ensure that the latest release is installed.
+          No value will just ensure that pyenv is installed.
+
+      pyenv_install_path:
+        type: "path"
+        required: false
+        default: "$HOME/.pyenv"
+        description: The path to install pyenv to.
+
+      pyenv_dynamic_bash_ext:
+        type: "bool"
+        required: false
+        default: false
+        description: Whether to build the dynamic pyenv bash extension.
+
+      pyenv_ensure_path:
+        type: "bool"
+        required: false
+        default: true
+        description: Whether to add the install path to PATH.

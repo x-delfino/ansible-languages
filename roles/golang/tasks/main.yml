@@ -1,0 +1,108 @@
+---
+- name: Initialize golang role
+  block:
+    - name: Check if golang is installed
+      ansible.builtin.command: "{{ golang_install_path }}/bin/go version"
+      register: __golang_check
+      failed_when: false
+      changed_when: false
+
+    - name: Get golang latest version
+      register: __golang_latest
+      when: >-
+        (golang_version is undefined and __golang_check.rc != 0)
+        or golang_version is defined and golang_version == 'latest'
+      ansible.builtin.uri:
+        url: "{{ golang_metadata_url }}"
+
+- name: Install golang
+  vars:
+    golang_install_version: >-
+      {{
+        (
+          (
+            __golang_latest.json | selectattr('stable', 'equalto', true)
+            | sort(attribute='version') | last
+          ).version
+        ) if (
+          (golang_version is undefined and __golang_check.rc != 0)
+          or golang_version == 'latest'
+        ) else ('go' + golang_version) if golang_version is defined
+      }}
+    golang_platform: "{{ ansible_system | lower }}"
+    golang_architecture: >-
+      {{
+        {
+          'x86_64': 'amd64',
+          'aarch64': 'arm64',
+          'armv6l': 'armv6l',
+          'i386': '386'
+        }.get((ansible_architecture | lower), '')
+      }}
+  block:
+    - name: Ensure compatible golang target
+      ansible.builtin.assert:
+        that:
+          - golang_architecture != ''
+          - golang_platform in ('windows', 'linux', 'darwin')
+        success_msg: >-
+          Compatible target found:
+          {{ golang_platform }}/{{ golang_architecture }}
+        fail_msg: >-
+          Incompatible target found:
+          {{ golang_platform }} {{ ansible_architecture | lower }}
+
+
+    - name: Install golang
+      when:
+        - golang_install_version is defined
+        - >-
+          __golang_check.stdout !=
+          'go version' + golang_install_version + " " +
+          golang_platform + "/" + golang_architecture
+      block:
+        - name: Create temp directory
+          ansible.builtin.tempfile:
+            state: directory
+            suffix: golang
+          register: __golang_tmp_dir
+          no_log: true
+
+        - name: Ensure golang install directory
+          ansible.builtin.file:
+            path: "{{ golang_install_path }}"
+            state: directory
+            mode: '755'
+
+        - name: Download golang
+          when: >-
+          ansible.builtin.unarchive:
+            remote_src: true
+            src: >-
+              {{
+                golang_base_url + "/"
+                + golang_install_version + "."
+                + golang_platform + "-" + golang_architecture
+                + (".zip" if golang_platform == "windows" else ".tar.gz")
+              }}
+            dest: "{{ __golang_tmp_dir.path }}"
+            mode: '0755'
+
+        - name: Copy golang files to destination
+          ansible.builtin.copy:
+            remote_src: true
+            mode: preserve
+            src: "{{ __golang_tmp_dir.path + '/go/' }}"
+            dest: "{{ golang_install_path }}"
+      always:
+        - name: Remove temp directory
+          ansible.builtin.file:
+            path: "{{ __golang_tmp_dir.path }}"
+            state: absent
+          when: __golang_tmp_dir is defined
+          no_log: true
+
+- name: Ensure golang in path
+  when: golang_ensure_path
+  x_delfino.common.env_path:
+    path: "{{ golang_install_path }}/bin"

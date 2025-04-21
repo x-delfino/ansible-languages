@@ -1,0 +1,36 @@
+---
+argument_specs:
+  main:
+    short_description: Main entrypoint for rustup role
+    options:
+      rustup_cargo_home:
+        type: "str"
+        required: false
+        default: $HOME/.cargo
+        description: .
+
+      rustup_home:
+        type: "str"
+        required: false
+        default: $HOME/.rustup
+        description: .
+
+      rustup_metadata_url:
+        type: "str"
+        required: false
+        default: https://static.rust-lang.org/rustup/release-stable.toml
+        description: The URL to retrieve rustup release metadata.
+
+      rustup_base_url:
+        type: "str"
+        required: false
+        default: https://static.rust-lang.org/rustup/archive
+        description: The base URL to download golang from.
+
+      rustup_version:
+        type: "str"
+        required: false
+        description: >
+          The rustup version to install (e.g. 1.28.1).
+          'latest' will ensure that the latest release is installed.
+          No value will just ensure that rustup is installed.

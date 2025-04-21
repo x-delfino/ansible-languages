@@ -1,0 +1,12 @@
+---
+- name: Verify pyenv-virtualenv is installed
+  hosts: all
+  tasks:
+    - name: Check pyenv-virtualenv is installed
+      ansible.builtin.command: $HOME/.pyenv/bin/pyenv virtualenv --version
+      register: zig_check
+      changed_when: false
+    - name: Assert zig installed
+      ansible.builtin.assert:
+        that:
+          - zig_check.rc == 0

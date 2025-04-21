@@ -1,0 +1,9 @@
+---
+- name: Setup pwsh install
+  hosts: all
+  tasks:
+    - name: Ensure install directory
+      ansible.builtin.file:
+        path: ~/.local
+        state: directory
+        mode: '755'

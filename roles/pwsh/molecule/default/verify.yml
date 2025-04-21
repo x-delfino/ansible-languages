@@ -1,0 +1,12 @@
+---
+- name: Verify powershell is installed
+  hosts: all
+  tasks:
+    - name: Check powershell is installed
+      ansible.builtin.command: $HOME/.local/microsoft/powershell/7/pwsh -version
+      register: pwsh_check
+      changed_when: false
+    - name: Assert powershell installed
+      ansible.builtin.assert:
+        that:
+          - pwsh_check.rc == 0

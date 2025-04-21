@@ -1,0 +1,55 @@
+---
+- name: Initialize pyenv-virtualenv role
+  block:
+    - name: Check if pyenv-virtualenv installed
+      ansible.builtin.command: >-
+        {{
+          pyenv_virtualenv_install_path
+          + "/../../bin/pyenv virtualenv --version"
+        }}
+      register: __pyenv_virtualenv_check
+      failed_when: false
+      changed_when: false
+
+    - name: Get pyenv-virtualenv latest version
+      register: __pyenv_virtualenv_latest
+      when: >-
+        (
+          pyenv_virtualenv_version is undefined
+          and __pyenv_virtualenv_check.rc != 0
+        )
+        or (
+          pyenv_virtualenv_version is defined
+          and pyenv_virtualenv_version == 'latest'
+        )
+      x_delfino.common.github_latest:
+        repo: "{{ pyenv_virtualenv_repo }}"
+
+- name: Install pyenv
+  vars:
+    pyenv_virtualenv_install_version: >-
+      {{
+        __pyenv_virtualenv_latest.latest_version if (
+          (
+            pyenv_virtualenv_version is undefined
+            and __pyenv_virtualenv_check.rc != 0
+          )
+          or pyenv_virtualenv_version == 'latest'
+        ) else (
+          'v' + pyenv_virtualenv_version
+        ) if pyenv_virtualenv_version is defined
+      }}
+  block:
+    - name: >-
+        Checkout pyenv repo
+        {{ pyenv_virtualenv_repo }}:{{ pyenv_virtualenv_install_version }}
+      when:
+        - pyenv_virtualenv_install_version is defined
+        - >-
+          __pyenv_virtualenv_check.stdout is not match(
+            'pyenv-virtualenv' + pyenv_virtualenv_install_version[1:] + ' .*'
+          )
+      ansible.builtin.git:
+        repo: 'https://github.com/{{ pyenv_virtualenv_repo }}'
+        dest: '{{ pyenv_virtualenv_install_path }}'
+        version: '{{ pyenv_virtualenv_install_version }}'

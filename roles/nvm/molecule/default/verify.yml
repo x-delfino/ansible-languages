@@ -1,0 +1,12 @@
+---
+- name: Verify nvm is installed
+  hosts: all
+  tasks:
+    - name: Check nvm is installed
+      ansible.builtin.shell: ". $HOME/.nvm/nvm.sh && nvm --version"
+      register: nvm_check
+      changed_when: false
+    - name: Assert nvm installed
+      ansible.builtin.assert:
+        that:
+          - nvm_check.rc == 0

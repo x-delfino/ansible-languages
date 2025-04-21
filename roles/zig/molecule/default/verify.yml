@@ -1,0 +1,12 @@
+---
+- name: Verify zig is installed
+  hosts: all
+  tasks:
+    - name: Check zig is installed
+      ansible.builtin.command: ~/.local/zig/zig version
+      register: zig_check
+      changed_when: false
+    - name: Assert zig installed
+      ansible.builtin.assert:
+        that:
+          - zig_check.rc == 0

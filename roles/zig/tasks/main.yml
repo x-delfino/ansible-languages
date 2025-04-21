@@ -1,0 +1,129 @@
+---
+- name: Initialize zig role
+  block:
+    - name: Check if zig is installed
+      ansible.builtin.command: "{{ zig_install_path }}/zig version"
+      register: __zig_check
+      failed_when: false
+      changed_when: false
+
+    - name: Get zig latest version
+      register: __zig_latest
+      when: >-
+        (zig_version is undefined and __zig_check.rc != 0)
+        or zig_version is defined and zig_version == 'latest'
+      ansible.builtin.uri:
+        url: "{{ zig_metadata_url }}"
+
+- name: Install zig
+  vars:
+    zig_install_version: >-
+      {{
+        (
+          __zig_latest.json | dict2items
+          | selectattr('key', 'search', '^([0-9]+\.[0-9]+\.[0-9]+)')
+          | map(attribute='key') | sort(reverse=true) | first
+        ) if (
+          (zig_version is undefined and __zig_check.rc != 0)
+          or zig_version == 'latest'
+        ) else zig_version if zig_version is defined
+      }}
+    zig_platform: >-
+      {{
+        {
+          'linux': 'linux',
+          'darwin': 'macos',
+          'windows': 'windows'
+        }.get((ansible_system | lower), '')
+      }}
+    zig_architecture: >-
+      {{
+        {
+          'x86_64': 'x86_64',
+          'aarch64': 'aarch64',
+        }.get((ansible_architecture | lower), '')
+      }}
+  block:
+    - name: Ensure compatible zig target
+      ansible.builtin.assert:
+        that:
+          - zig_architecture != ''
+          - zig_platform != ''
+        success_msg: >-
+          Compatible target found:
+          {{ zig_platform }}/{{ zig_architecture }}
+        fail_msg: >-
+          Incompatible target found:
+          {{ zig_platform }} {{ zig_architecture | lower }}
+
+    - name: Install zig
+      when:
+        - zig_install_version is defined
+        - __zig_check.stdout != zig_install_version
+      vars:
+        zig_target: >-
+          {{
+            zig_architecture + "-" + zig_platform
+            + (
+              (
+                "-musl" if "musl" in (__zig_ldd.stdout | lower)
+                else "-gnu" if "glibc" in (__zig_ldd.stdout | lower)
+                else ""
+              ) if zig_platform == 'unknown-linux'
+              else ""
+            )
+          }}
+      block:
+        - name: Create temp directory
+          ansible.builtin.tempfile:
+            state: directory
+            suffix: zig
+          register: __zig_tmp_dir
+          no_log: true
+
+        - name: Ensure zig install directory
+          ansible.builtin.file:
+            path: "{{ zig_install_path }}"
+            state: directory
+            mode: '755'
+
+        - name: Ensure zig archive
+          ansible.builtin.unarchive:
+            remote_src: true
+            src: >-
+              {{
+                zig_base_url + "/" + zig_install_version + "/"
+                + 'zig-' + zig_platform + '-' + zig_architecture + '-'
+                + zig_install_version
+                + ('.zip' if zig_platform == 'windows' else '.tar.xz' )
+              }}
+            dest: "{{ __zig_tmp_dir.path }}"
+            list_files: true
+          register: __zig_unarchive
+
+        - name: Copy zig files to destination
+          ansible.builtin.copy:
+            remote_src: true
+            mode: preserve
+            src: "{{ __zig_tmp_dir.path + '/' + __zig_unarchive.files[0] }}"
+            dest: "{{ zig_install_path }}"
+
+      always:
+        - name: Remove temp directory
+          ansible.builtin.file:
+            path: "{{ __zig_tmp_dir.path }}"
+            state: absent
+          when: __zig_tmp_dir is defined
+          no_log: true
+
+- name: Ensure zig in path
+  when: zig_ensure_path
+  x_delfino.common.env_path:
+    path: "{{ zig_install_path }}"
+
+- name: Ensure zig symlink is present
+  when: zig_symlink is defined
+  ansible.builtin.file:
+    src: "{{ zig_install_path }}/zig"
+    dest: "{{ zig_symlink }}"
+    state: link

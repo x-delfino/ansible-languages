@@ -1,0 +1,5 @@
+---
+- name: Test rustup install
+  hosts: all
+  roles:
+    - role: x_delfino.languages.rustup

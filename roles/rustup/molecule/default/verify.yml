@@ -1,0 +1,12 @@
+---
+- name: Verify rust is installed
+  hosts: all
+  tasks:
+    - name: Check rust is installed
+      ansible.builtin.command: ~/.cargo/bin/rustup --version
+      register: rust_check
+      changed_when: false
+    - name: Assert rust installed
+      ansible.builtin.assert:
+        that:
+          - rust_check.rc == 0

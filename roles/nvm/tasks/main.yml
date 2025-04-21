@@ -1,0 +1,50 @@
+---
+- name: Initialize nvm role
+  block:
+    - name: Check if nvm is installed
+      ansible.builtin.shell: >-
+        . {{ nvm_install_path }}/nvm.sh && nvm --version
+      register: __nvm_check
+      failed_when: false
+      changed_when: false
+
+    - name: Get nvm latest release
+      register: __nvm_latest
+      when: >-
+        (nvm_version is undefined and __nvm_check.rc != 0)
+        or nvm_version is defined and nvm_version == 'latest'
+      x_delfino.common.github_latest:
+        repo: "{{ nvm_repo }}"
+
+- name: Install nvm
+  vars:
+    nvm_install_version: >-
+      {{
+        __nvm_latest.latest_version if (
+          (nvm_version is undefined and __nvm_check.rc != 0)
+          or nvm_version == 'latest'
+        ) else ('v' + nvm_version) if nvm_version is defined
+      }}
+  block:
+    - name: Ensure nvm install directory
+      ansible.builtin.file:
+        path: "{{ nvm_install_path }}"
+        state: directory
+        mode: '755'
+
+    - name: Install nvm
+      when: >-
+        nvm_install_version is defined
+        and ('v' + __nvm_check.stdout) != nvm_install_version
+      ansible.builtin.get_url:
+        url: >-
+          {{
+            "https://raw.githubusercontent.com/" + nvm_repo + "/"
+            + nvm_install_version + "/" + item.file
+          }}
+        dest: "{{ nvm_install_path }}/{{ item.file }}"
+        mode: "{{ item.mode }}"
+      loop:
+        - {file: 'nvm-exec', mode: '744'}
+        - {file: 'nvm.sh', mode: '744'}
+        - {file: 'bash_completion', mode: '644'}

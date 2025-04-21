@@ -1,0 +1,44 @@
+---
+- name: Initialize pyenv role
+  block:
+    - name: Check if pyenv installed
+      ansible.builtin.command: "{{ pyenv_install_path }}/bin/pyenv --version"
+      register: __pyenv_check
+      failed_when: false
+      changed_when: false
+
+    - name: Get pyenv latest version
+      register: __pyenv_latest
+      when: >-
+        (pyenv_version is undefined and __pyenv_check.rc != 0)
+        or pyenv_version is defined and pyenv_version == 'latest'
+      x_delfino.common.github_latest:
+        repo: "{{ pyenv_repo }}"
+
+- name: Install pyenv
+  vars:
+    pyenv_install_version: >-
+      {{
+        __pyenv_latest.latest_version if (
+          (pyenv_version is undefined and __pyenv_check.rc != 0)
+          or pyenv_version == 'latest'
+        ) else ('v' + pyenv_version) if pyenv_version is defined
+      }}
+  block:
+    - name: "Checkout pyenv repo {{ pyenv_repo }}:{{ pyenv_install_version }}"
+      when:
+        - pyenv_install_version is defined
+        - __pyenv_check.stdout != 'pyenv ' + pyenv_install_version[1:]
+      ansible.builtin.git:
+        repo: 'https://github.com/{{ pyenv_repo }}'
+        dest: '{{ pyenv_install_path }}'
+        version: '{{ pyenv_install_version }}'
+
+# - name: Install pyenv dynamic bash extension
+#   when: pyenv_dynamic_bash_ext
+#   ansible.builtin.import_tasks: install_bash_ext.yml
+
+- name: Ensure pyenv in path
+  when: pyenv_ensure_path
+  x_delfino.common.env_path:
+    path: "{{ pyenv_install_path }}/bin"

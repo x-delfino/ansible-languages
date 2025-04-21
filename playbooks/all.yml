@@ -1,0 +1,13 @@
+---
+- name: Apply all roles
+  hosts: "{{target|default('all')}}"
+  roles:
+    - bun
+    - golang
+    - nvm
+    - pwsh
+    - pyenv
+    - pyenv_virtualenv
+    - python3_venv
+    - rustup
+    - zig

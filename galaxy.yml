@@ -1,0 +1,30 @@
+---
+namespace: x_delfino
+name: languages
+version: 0.0.1
+description: collection of programming languages and associated tooling
+tags:
+ - tools
+authors:
+ - delfino
+
+readme: README.md
+license:
+ - Apache-2.0
+license_file: ''
+
+dependencies:
+ x_delfino.common: ">=0.0.1"
+
+repository: https://github.com/x-delfino/ansible-languages
+documentation: https://github.com/x-delfino/ansible-languages
+homepage: https://github.com/x-delfino/ansible-languages
+issues: https://github.com/x-delfino/ansible-languages/issues
+
+build_ignore:
+ - '*.ansible'
+ - .gitignore
+ - build
+ - molecule
+ - automation
+ - Taskfile.yml

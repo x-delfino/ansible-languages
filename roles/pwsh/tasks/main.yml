@@ -1,0 +1,153 @@
+---
+- name: Initialize pwsh role
+  block:
+    - name: Check if pwsh is installed
+      ansible.builtin.command: "{{ pwsh_install_path }}/pwsh -version"
+      register: __pwsh_check
+      failed_when: false
+      changed_when: false
+
+    - name: Get pwsh latest version
+      register: __pwsh_latest
+      when: >-
+        (pwsh_version is undefined and __pwsh_check.rc != 0)
+        or pwsh_version is defined and pwsh_version == 'latest'
+      x_delfino.common.github_latest:
+        repo: "{{ pwsh_repo }}"
+
+- name: Install pwsh
+  vars:
+    pwsh_install_version: >-
+      {{
+        __pwsh_latest.latest_version if (
+          (pwsh_version is undefined and __pwsh_check.rc != 0)
+          or pwsh_version == 'latest'
+        ) else ('v' + pwsh_version) if pwsh_version is defined
+      }}
+    pwsh_platform: "{{ ansible_system | lower }}"
+    pwsh_architecture: >-
+      {{
+        {
+          'x86_64': 'x64',
+          'aarch64': 'arm64',
+          'armv6l': 'armv6l',
+          'i386': 'x86'
+        }.get((ansible_architecture | lower), '')
+      }}
+    pwsh_dependencies: >-
+      {{
+        {
+          'ubuntu': {
+            'focal': [
+              'ca-certificates',
+              'libgcc-s1',
+              'libicu66',
+              'libssl1.1'
+            ],
+            'jammy': [
+              'ca-certificates',
+              'libgcc-s1',
+              'libicu70',
+              'liblttng-ust1',
+              'libssl3',
+              'libunwind8'
+            ],
+            'noble': [
+              'ca-certificates',
+              'libgcc-s1',
+              'libicu74',
+              'liblttng-ust1',
+              'libssl3',
+              'libunwind8'
+            ]
+          },
+          'debian': {
+            'bookworm': [
+              'libgcc-s1',
+              'libicu72',
+              'libssl3'
+            ],
+            'bullseye': [
+              'libgcc-s1',
+              'libicu67',
+              'libssl1.1'
+            ],
+            'buster': [
+              'libgcc1',
+              'libicu63',
+              'libssl1.1'
+            ]
+          },
+          'kali': {
+            'kali-rolling': [
+              'libgcc-s1',
+              'libicu72',
+              'libssl3'
+            ],
+            'kali-release': [
+              'libgcc-s1',
+              'libicu72',
+              'libssl3'
+            ]
+          }
+        }
+        .get(ansible_distribution | lower, {})
+        .get(ansible_distribution_release | lower, [])
+      }}
+  block:
+    - name: Ensure compatible pwsh target
+      ansible.builtin.assert:
+        that:
+          - pwsh_architecture != ''
+          - pwsh_platform in ('windows', 'linux', 'darwin')
+          - (pwsh_dependencies | length) > 0
+        success_msg: >-
+          Compatible target found:
+          {{ pwsh_platform }}-{{ pwsh_architecture }}
+          {{ ansible_distribution | lower }}
+          {{ ansible_distribution_release | lower }}
+        fail_msg: >-
+          Incompatible target found:
+          {{ pwsh_platform }} {{ pwsh_architecture | lower }}
+          {{ ansible_distribution | lower }}
+          {{ ansible_distribution_release | lower }}
+
+    - name: Ensure pwsh dependencies
+      ansible.builtin.apt:
+        package: >-
+          {{
+            pwsh_dependencies
+             + ['libc6', 'libgssapi-krb5-2', 'libstdc++6', 'zlib1g']
+          }}
+        update_cache: true
+        state: present
+      become: true
+
+    - name: Ensure pwsh install directory
+      ansible.builtin.file:
+        path: "{{ pwsh_install_path }}"
+        state: directory
+        mode: '755'
+
+    - name: Ensure powershell archive
+      when:
+        - pwsh_install_version is defined
+        - >-
+          __pwsh_check.stdout != 'PowerShell ' + pwsh_install_version[1:]
+      ansible.builtin.unarchive:
+        remote_src: true
+        src: >-
+          {{
+            "https://github.com/" + pwsh_repo + "/releases/download/"
+            + pwsh_install_version + "/"
+            + "powershell-" + pwsh_install_version[1:]
+            + "-" + pwsh_platform + "-" + pwsh_architecture +
+            (".zip" if pwsh_platform == 'windows' else '.tar.gz')
+          }}
+        dest: "{{ pwsh_install_path }}"
+
+    - name: Ensure powershell executable
+      ansible.builtin.file:
+        path: "{{ pwsh_install_path }}/pwsh"
+        mode: '755'
+        state: file

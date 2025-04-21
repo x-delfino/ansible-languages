@@ -1,0 +1,46 @@
+---
+argument_specs:
+  main:
+    short_description: Main entrypoint for Powershell role
+    options:
+      pwsh_repo:
+        type: "str"
+        required: false
+        default: Powershell/Powershell
+        description: The GitHub repository to install Powershell from.
+
+      pwsh_version:
+        type: "str"
+        required: false
+        description: >
+          The PowerShell version to install (e.g. 7.2.3).
+          'latest' will ensure that the latest release is installed.
+          No value will just ensure that PowerShell is installed.
+
+      pwsh_install_path:
+        type: "path"
+        required: false
+        default: "$HOME/.local/microsoft/powershell/7"
+        description: The path to install PowerShell to.
+
+      pwsh_symlink:
+        type: "path"
+        required: false
+        default: $HOME/.local/bin/pwsh
+        description: >
+          Path of a symlink to the pwsh binary.
+          No value will skip symlink creation.
+
+      pwsh_ensure_path:
+        type: "bool"
+        required: false
+        default: true
+        description: Whether to add the install path to PATH.
+  test:
+    short_description: test entrypoint for Powershell role
+    options:
+      pwsh_ensure_path:
+        type: "bool"
+        required: false
+        default: true
+        description: Whether to add the install path to PATH.

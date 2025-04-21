@@ -1,0 +1,12 @@
+---
+- name: Verify golang is installed
+  hosts: all
+  tasks:
+    - name: Check golang is installed
+      ansible.builtin.command: ~/.local/go/bin/go version
+      register: golang_check
+      changed_when: false
+    - name: Assert golang installed
+      ansible.builtin.assert:
+        that:
+          - golang_check.rc == 0

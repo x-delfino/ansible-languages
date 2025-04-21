@@ -1,0 +1,15 @@
+---
+- name: Configure pyenv dynamic bash extension
+  become: true
+  ansible.builtin.command:
+    cmd: ./src/configure
+    chdir: "{{ pyenv_install_path }}"
+  register: configure
+  changed_when: configure.rc != 0
+
+- name: Compile pyenv dynamic bash extension
+  become: true
+  community.general.make:
+    chdir: "{{ pyenv_install_path }}"
+    params:
+      -C: src

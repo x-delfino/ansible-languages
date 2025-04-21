@@ -1,0 +1,29 @@
+---
+galaxy_info:
+  author: delfino
+  role_name: nvm
+  description: >-
+    nvm allows you to quickly install and use different versions of node via the
+    command line.
+
+  license: Apache-2.0
+
+  min_ansible_version: '2.1'
+
+  platforms:
+    - name: Debian
+      versions:
+        - bookworm
+        - bullseye
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
+        - noble
+    - name: Kali
+      versions:
+        - all
+
+  galaxy_tags: []
+
+dependencies: []

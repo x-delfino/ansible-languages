@@ -1,0 +1,28 @@
+---
+galaxy_info:
+  author: delfino
+  role_name: bun
+  description: Bun is an all-in-one toolkit for JavaScript and TypeScript apps.
+
+  license: Apache-2.0
+
+  min_ansible_version: '2.1'
+
+  platforms:
+    - name: Debian
+      versions:
+        - bookworm
+        - bullseye
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
+        - noble
+    - name: Kali
+      versions:
+        - all
+
+  galaxy_tags: []
+
+dependencies:
+  - x_delfino.utils.unzip

@@ -1,0 +1,12 @@
+---
+- name: Verify pyenv is installed
+  hosts: all
+  tasks:
+    - name: Check pyenv is installed
+      ansible.builtin.command: ~/.pyenv/bin/pyenv --version
+      register: pyenv_check
+      changed_when: false
+    - name: Assert pyenv installed
+      ansible.builtin.assert:
+        that:
+          - pyenv_check.rc == 0

@@ -1,0 +1,5 @@
+---
+- name: Test zig install
+  hosts: all
+  roles:
+    - role: x_delfino.languages.zig

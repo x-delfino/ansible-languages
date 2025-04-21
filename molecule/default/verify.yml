@@ -1,0 +1,12 @@
+---
+- name: Verify
+  hosts: all
+  tasks:
+    - name: Check bun is installed
+      ansible.builtin.command: ~/.bun/bin/bun --version
+      register: bun_check
+      changed_when: false
+    - name: Assert bun installed
+      ansible.builtin.assert:
+        that:
+          - "bun_check.rc == 0"

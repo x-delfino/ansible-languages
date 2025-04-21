@@ -1,0 +1,31 @@
+---
+galaxy_info:
+  author: delfino
+  role_name: pyenv_virtualenv
+  description: >-
+    pyenv-virtualenv is a pyenv plugin that provides features to manage
+    virtualenvs and conda environments for Python on UNIX-like systems.
+
+  license: Apache-2.0
+
+  min_ansible_version: '2.1'
+
+  platforms:
+    - name: Debian
+      versions:
+        - bookworm
+        - bullseye
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
+        - noble
+    - name: Kali
+      versions:
+        - all
+
+  galaxy_tags: []
+
+dependencies:
+  - x_delfino.utils.git
+  - x_delfino.languages.pyenv

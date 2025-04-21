@@ -1,0 +1,24 @@
+---
+argument_specs:
+  main:
+    short_description: Main entrypoint for pyenv_virtualenv role
+    options:
+      pyenv_virtualenv_repo:
+        type: "str"
+        required: false
+        default: pyenv/pyenv-virtualenv
+        description: The GitHub repository to install pyenv-virtualenv from.
+
+      pyenv_virtualenv_version:
+        type: "str"
+        required: false
+        description: >
+          The pyenv version to install (e.g. 1.2.4).
+          'latest' will ensure that the latest release is installed.
+          No value will just ensure that pyenv-virtualenv is installed.
+
+      pyenv_virtualenv_install_path:
+        type: "path"
+        required: false
+        default: "$HOME/.pyenv/plugins/pyenv-virtualenv"
+        description: The path to install pyenv-virtualenv to.
