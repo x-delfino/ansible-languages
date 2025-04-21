@@ -2,11 +2,10 @@
 galaxy_info:
   author: delfino
   role_name: pwsh
-  description: powershell is cool
-  issue_tracker_url: test
-#    PowerShell is a cross-platform task automation solution made up of a
-#    command-line shell, a scripting language, and a configuration management
-#    framework.
+  description: >-
+    PowerShell is a cross-platform task automation solution made up of a
+    command-line shell, a scripting language, and a configuration management
+    framework.
 
   license: Apache-2.0
 
@@ -25,9 +24,5 @@ galaxy_info:
     - name: Kali
       versions:
         - all
-
-  galaxy_tags:
-    - test
-
 
 dependencies: []

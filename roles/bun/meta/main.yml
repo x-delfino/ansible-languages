@@ -25,4 +25,4 @@ galaxy_info:
   galaxy_tags: []
 
 dependencies:
-  - x_delfino.utils.unzip
+  - x_delfino.common.unzip
