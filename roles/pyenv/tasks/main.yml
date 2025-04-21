@@ -25,7 +25,7 @@
         ) else ('v' + pyenv_version) if pyenv_version is defined
       }}
   block:
-    - name: "Checkout pyenv repo {{ pyenv_repo }}:{{ pyenv_install_version }}"
+    - name: "Checkout pyenv repo {{ pyenv_repo + ':' + pyenv_install_version }}"
       when:
         - pyenv_install_version is defined
         - __pyenv_check.stdout != 'pyenv ' + pyenv_install_version[1:]

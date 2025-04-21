@@ -42,7 +42,7 @@
   block:
     - name: >-
         Checkout pyenv repo
-        {{ pyenv_virtualenv_repo }}:{{ pyenv_virtualenv_install_version }}
+        {{ pyenv_virtualenv_repo + ':' + pyenv_virtualenv_install_version }}
       when:
         - pyenv_virtualenv_install_version is defined
         - >-
