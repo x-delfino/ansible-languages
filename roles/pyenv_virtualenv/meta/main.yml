@@ -27,5 +27,5 @@ galaxy_info:
   galaxy_tags: []
 
 dependencies:
-  - x_delfino.utils.git
+  - x_delfino.common.git
   - x_delfino.languages.pyenv
