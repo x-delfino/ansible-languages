@@ -22,7 +22,7 @@
         (
           __zig_latest.json | dict2items
           | selectattr('key', 'search', '^([0-9]+\.[0-9]+\.[0-9]+)')
-          | map(attribute='key') | sort(reverse=true) | first
+          | map(attribute='key') | community.general.version_sort | last
         ) if (
           (zig_version is undefined and __zig_check.rc != 0)
           or zig_version == 'latest'

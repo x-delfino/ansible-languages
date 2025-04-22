@@ -15,6 +15,7 @@ license_file: ''
 
 dependencies:
  x_delfino.common: ">=0.0.1"
+ community.general: ">=2.2.0"
 
 repository: https://github.com/x-delfino/ansible-languages
 documentation: https://github.com/x-delfino/ansible-languages
